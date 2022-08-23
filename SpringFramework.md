@@ -1187,6 +1187,9 @@ spring:
     prefix: classpath:/templates/ # 指定 thymeleaf 模板的前缀
     suffix: .html #指定 thymeleaf 模板的后缀
     cache: false # 是否开启缓存，默认为开启的true，开发时推荐为false
+  web:
+    resources:
+      static-locations: classpath:/static/, file:${path} # 配置静态资源
 mybatis: # sqlSessionFactory
   mapper-locations: classpath:com/springboot/mapper/*.xml # 指定mapper配置文件的位置
   type-aliases-package: com.springboot.entity # 实体类包，起别名
@@ -1358,7 +1361,7 @@ void logTest() {
 
 传统的文件上传是将本地文件上传到当前系统所在的服务器的过程；而目前大多数是将文件放入文件的第三方存储平台，如阿里云的对象存储。
 
-- 在文件上传页面编写表单，请求类型必须为 `post` ，`enctype` 属性需为 `multipart/form-data` 
+- **在文件上传页面编写表单，请求类型必须为 `post` ，`enctype` 属性需为 `multipart/form-data` **
 
 - 在控制类中请求处理方法参数为 `MultipartFile` ，是用来接收文件的对象，通过这个对象可获取上传文件的信息
 
@@ -1373,7 +1376,7 @@ void logTest() {
       
       // 上传文件 path 为上传的位置，File.getOriginalFilename() 为文件名
       file.transferTo(new File(path, File.getOriginalFilename()));
-      
+  *******************************************************************************************
       // 修改文件名-获取文件后缀
       String suffix = filename.susstring(filename.lastIndexOf('.'));
       // 修改文件名-以时间戳为名
@@ -1474,6 +1477,8 @@ public interface HandlerInterceptor {
 }
 ```
 
+<a id="WebMvcConfigurer"></a>
+
 **配置拦截器，实现WebMvcConfigurer**
 
 ```java
@@ -1496,7 +1501,7 @@ public class Config implements WebMvcConfigurer {
     
     
     /**
-    * thymeleaf 视图
+    * thymeleaf 视图直接访问
     */
     public void addViewControllers(ViewControllerRegistry registry) {
         // 请求路径 / 
@@ -1624,6 +1629,8 @@ public class Config implements WebMvcConfigurer {
 
 Thymeleaf 是一个现代的服务器端 **Java 模板引擎**，适用于 Web 和独立环境，且对网络环境无要求，但是必须要经过控制器，不能直接访问模板。
 
+> 若想直接访问前端页面时，实现 [WebMvcConfigurer](#WebMvcConfigurer) 接口
+
 ### 环境搭建
 
 **引入依赖** `spring-boot-starter-thymeleaf` 
@@ -1722,21 +1729,201 @@ spring:
      <span th:if="${age>18}">张三成年了</span>
      ```
 
-   
 
+## REST
 
+表征性状态转化，一组架构的的约束和原则，非标准、非规范。
+RESTFUL是一种以网络为基础构架的一种架构风格，一个架构符合 REST 设计原则和约束则称这个架构为 RESTFUL。
 
+具有简洁、层次、优雅特征，适用于前后端分离。
 
+1. URL资源
 
+   互联网中所有的事务都可抽象为资源——增POST 删DELETE 改PUT/PATCH 查GET
 
+   - 使用名词，且为复数，如 `/users/100` -> 查询id=100的用户
 
+   - GET 请求不应涉及现有资源状态的改变，如添加、删除、修改
 
+   - 使用子资源表达关系，如 `/users/100/roles` -> 查询id=100用户的所有角色
 
+   - 使用 HTTP 头声明序列化格式，设置请求数据和响应数据的格式，如 JSON
 
+   - 集合提供功能，如过滤、排序、分页等
 
+     如 `/users?id<100` -> 过滤id<100的用户
 
+   - 版本化你的 API
 
+     如 `/v1/users/100` -> 第一个版本中的查询
 
+   - HTTP 状态码处理、错误信息、数据
+
+     200  正常
+
+     201  资源成功创建
+
+     204  资源已成功删除
+
+     304  客户端使用缓存
+
+2. - 在控制层处理类上 `@RestController` 专用于 REST 分格的注解
+
+   - 处理类上 `@ResponseBody` ，用于将返回值转为 JSON，`@RestController` 可替换 `@Controller`和`ResponseBody`
+
+   - `@RequestMapping()` 可用于处理任何请求类型
+
+   - 在处理请求方法上，需使用 REST 约定的请求类型，只指定类型访问相应请求    
+
+     - 查询 `@GetMapping("/{param}")`
+
+       获取请求中的参数 `@PathVariable("param")`
+
+     - 添加 `@PostMapping`
+
+       处理方法中使用 `@RequestBody`，来接收请求中 JSON 格式的数据
+
+     - 修改 `@PutMapping`或`@PatchMapping`
+
+     - 删除 `@DeleteMapping`
+
+   在测试时使用 ==Postman== 工具
+
+3. 响应状态码
+
+   `ResponseEntity` 类，有 `status` 属性，继承了 `HttpEntity` 类，有 `headers` `body` 属性
+
+   `HttpStatus` 枚举类中包含许多状态码
+
+   添加一条用户记录：
+
+   ```java
+   @PostMapping() // http://localhost:8080/v1/users/
+   public ResponseEntity<Void> save(@RequestBody User user) {
+       // 调用业务
+       return new ResponseEntity<>(HttpStatus.NO_CONTIENT);
+   }
+   ```
+
+   > 查询成功返回 new ResponseEntity<>(查询结果, HttpStatus.OK);
+
+## 异常处理
+
+传统开发中的异常处理
+
+`HandlerExceptionResolve` 接口，当控制器中的方法执行时能够解析出异常，接口中只有一个`resolveException` 方法
+
+```java
+/**
+* @handler handler 处理类方法对象
+* @ex 发现的异常
+* @return 出现异常跳转的页面 
+*/
+ModelAndView resolveException(
+    HttpServletRequest req, HttpServletResponse resp, @Nullable Object handler, Exception ex) { 
+}
+```
+
+前后分离开发中的异常处理
+
+`@ControllerAdvice` 默认应用于所有全局的控制器
+
+```java
+@ControllerAdvice
+public class ExceptionHandle {
+    
+    @ExceptionHandler(value = ExceptionType.class)
+    @ResponseBody
+    public ResponseEntity exceptionMethod(Exception ex) {
+        return new ResponseEntity(ex.getMessage(), HttpStatus);
+    }
+    
+}
+```
+
+## 跨域
+
+CORS，跨域(域名)资源共享，允许浏览器跨源服务器，发出 XMLHttpRequest 请求，即 Ajax，从而访问另一个源服务器地址，克服了 Ajax 只能同源使用的限制。
+
+同源策略：same origin policy 是浏览器的一个安全功能，不同源的客户端脚本在没有授权的情况下，不能读写对方的资源。
+
+源：origin，即指协议、域名和端口号，如 http协议、域名www.baidu.com、端口8080
+
+不受同源限制：
+
+如引入js文件的 <script src="" />、添加图片 <img src="" />、引入css文件<link />、嵌入其他页面<iframe />
+
+受同源限制：Ajax 请求，提示信息 `Access-Control-Allow-Origin` 
+
+**跨域配置** 
+
+- 局部
+
+  `@CrossOrigin` 在控制类上，该类上的所有方法允许其他域资源访问
+
+- 全局
+
+  自定义配置类
+
+  ```java
+  import org.springframework.web.cors.*;
+  @Configuration
+  public class CorsConfig {
+      @Bean
+      public CorsFilter corsFilter() {
+          UrlBasedCorsConfigurationSource source = new UrlBaseCorsConfigurationSource();
+          // 允许任何域名
+          CorsConfiguration.addAllowedOrigin("*"); 
+          // 允许任何请求头
+          CorsConfiguration.addAllowedHeader("*");
+          // 允许任何类型请求
+          CorsConfiguration.addAllowedMethod("*");
+          source.registerCorsConfiguration("/**", corsConfiguration);
+          return new CorsFilter(source);
+      }
+  }
+  ```
+
+## Jasypt
+
+允许对配置文件等进行加密
+
+- 引入依赖 
+
+  ```xml
+  <dependency>
+     <groupId>com.github.ulisesbocchio</groupId>
+     <artifactId>jasypt-spring-boot-starter</artifactId>
+  </dependency>
+  ```
+
+- 配置
+
+  ```yml
+  spring:
+    datasource:
+      username: ENC(oA2JLrdwTJ981ThK3jh94Q2IL4Eodw+vz5sFsBjcJUQFkwQhwnLXhH2YdYp93Jlv) #()中为密文
+      password: ENC(NoERRlJjh4XHuU/P7vGGvBU/1F00GAGIe4imbSsnlOC5bgPCOQ6OHqgdYCsIfc5d)
+  jasypt:
+    encryptor:
+      algorithm: PBEWITHHMACSHA512ANDAES_256 # 指定加密算法
+      password: abcde # 指定密钥，可在运行时通过 VM options 参数进行设置
+  ```
+
+  `-Djasypt.encryptor.password=密钥`
+
+- 使用
+
+  通过类对对应内容进行加密，也可以解密，在加密时可设置密钥，每次加密结果都不相同
+
+  在运行过程中，会创建 `StringEncryptor` 类对象
+
+  ```java
+  StringEncryptor stringEncryptor = new StringEncryptor();
+  // 对字段值加密
+  stringEncryptor.encrypt("name");
+  stringEncryptor.decrypt("加密后的密码");
+  ```
 
 
 
