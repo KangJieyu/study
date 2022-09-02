@@ -32,20 +32,32 @@ import org.apache.juli.logging.Log;
  * optionally support a pipeline of Valves that process the request in an
  * order configured at runtime, by implementing the <b>Pipeline</b> interface
  * as well.
+ *
+ * Container 是一个对象，他能够执行从客户端接收的请求，且基于这些请求返回响应。
+ * 通过实现 Pipeline 接口，一个 Container 可能选择支持一个阀门管道，这些管道按照运行时
+ * 的配置顺序处理请求。
+ *
  * <p>
  * Containers will exist at several conceptual levels within Catalina.  The
  * following examples represent common cases:
+ * Containers 在 Catalina 中存在几个概念上的级别。以下是一些常见的例子：
  * <ul>
  * <li><b>Engine</b> - Representation of the entire Catalina servlet engine,
  *     most likely containing one or more subcontainers that are either Host
  *     or Context implementations, or other custom groups.
+ *     Engine - 表示整个的 Catalina servlet 引擎，可能包含一个或多个子容器，他们是 Host
+ *     或 Context 实现，或其他自定义组。
  * <li><b>Host</b> - Representation of a virtual host containing a number
  *     of Contexts.
+ *     Host - 表示一个虚拟的包含多个 Context 的主机。
  * <li><b>Context</b> - Representation of a single ServletContext, which will
  *     typically contain one or more Wrappers for the supported servlets.
+ *     Context - 表示一个单独的 ServletContext，包含一个或多个支持 servlet 的 Wrapper。
  * <li><b>Wrapper</b> - Representation of an individual servlet definition
  *     (which may support multiple servlet instances if the servlet itself
  *     implements SingleThreadModel).
+ *     Wrapper - 表示单独的 servlet 定义(如果 servlet 自己实现了 SingleTreadModel
+ *     可能支持多个 servlet 实例)。
  * </ul>
  * A given deployment of Catalina need not include Containers at all of the
  * levels described above.  For example, an administration application
@@ -54,23 +66,34 @@ import org.apache.juli.logging.Log;
  * application is relatively small.  Therefore, Container implementations
  * need to be designed so that they will operate correctly in the absence
  * of parent Containers in a given deployment.
+ * Catalina 的部署不需要包括上面描述的所有 Containers。如，嵌入一个网络设备(如路由器)中的
+ * 管理的应用程序可能包含一个 Context 和多个 Wrapper，如果应用程序是相对小的甚至是一个 Wrapper。
+ * 因此，Container 的实现需要被设计，以至于在没有父 Container 的情况下他们也可正确的运行。
  * <p>
  * A Container may also be associated with a number of support components
  * that provide functionality which might be shared (by attaching it to a
  * parent Container) or individually customized.  The following support
  * components are currently recognized:
+ * 一个 Container 还可能和许多支持组件相关联，这些组件可以共享通过其附加到父 container 或者
+ * 单独定义的功能。目前识别的组件包括：
  * <ul>
  * <li><b>Loader</b> - Class loader to use for integrating new Java classes
  *     for this Container into the JVM in which Catalina is running.
+ *     Loader - 将这个 Container 中新的 Java 类集成到正在运行的 Catalina 中的 JVM
+ *     的类加载器。
  * <li><b>Logger</b> - Implementation of the <code>log()</code> method
  *     signatures of the <code>ServletContext</code> interface.
+ *     Logger - ServletContext 接口中 log() 方法的实现。
  * <li><b>Manager</b> - Manager for the pool of Sessions associated with
  *     this Container.
+ *     Manager - 和这个 Container 相关联的 Session 池的管理器。
  * <li><b>Realm</b> - Read-only interface to a security domain, for
  *     authenticating user identities and their corresponding roles.
+ *     Realm - 安全域中仅读的接口，用于an
  * <li><b>Resources</b> - JNDI directory context enabling access to static
  *     resources, enabling custom linkages to existing server components when
  *     Catalina is embedded in a larger server.
+ *     Resources -
  * </ul>
  *
  * @author Craig R. McClanahan

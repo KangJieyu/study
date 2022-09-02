@@ -38,11 +38,15 @@ MongoDB 将文档存储在==集合==中，集合类似于关系数据库中的�
 
   `systemctl start mongod`
 
-- 连接 MongoDB
+- 本地连接 MongoDB
 
   `mongosh`
 
   > 每次连接 MongoDB，都会进入 `test` 数据库
+  
+- 远程服务器连接 MongoDB
+
+  `mongosh --host 主机 --port 27017`
 
 ## 数据库和集合
 
@@ -326,6 +330,65 @@ MongoDB 在创建集合期间会创建一个唯一的索引在"\_id"字段上。
   >
   > 当查询的顺序不同时，引擎会自动调整字段的顺
 
+## 副本集
+
+### 介绍
+
+MongoDB 中的 ==副本集== 是一组 mongod 维护相同数据集的进程。副本集提供冗余和[高可用性](#high availability)，并且是所有生产部署的基础。
+
+一个副本集包含多个数据承载点和一个可选的仲裁点。在数据承载点中，有且仅有一个成员是主节点，其他节点是从节点。
+
+<img src="./images/MongoDB主从节点.png" style="zoom: 150%" />
+
+> 客户端始终对主节点进行读写操作，当主节点发生变化时，从节点会进行更新，保证主从节点的数据一致。
+
+<a id="high availability"></a>
+
+**高可用** 
+
+高可用性表明系统设计是为了耐久性、冗余性和自动故障切换/转移的，便于系统支持的应用能够长时间连续运行，不会长时间停机。
+
+> 故障转移：在主节点发生故障时(主节点与其他节点的通信超过了配置期限)，符合条件的多个从节点通过“心跳”进行选举(从节点自荐)，选出一个作为主节点提供服务。
+
+> 当副本集中只有一个从节点时，从节点不能充当主节点对系统提供服务了。
+
+### 搭建
+
+`mongod --port 端口 --dbpath 数据目录 --bind_ip 0.0.0.0 --replSet 副本集名/[地址:端口,地址:端口]`
+
+连接 MongoDB ，配置副本集
+
+**初始化**
+
+```sql
+admin> var config = {
+ 	_id: "myReplace",
+	members: [
+		{_id: 0, host: "localhost:27017"},
+		{_id: 1, host: "localhost:27018"},
+		{_id: 2, host: "localhost:27019"}
+    ]
+};
+
+rs.initiate(config);
+```
+
+### 限制
+
+副本集的可进行自动故障转移，解决了数据的冗余备份和高可用性。
+
+但是在数据量特大时无法解决硬件的容量限制和高并发压力的问题，出现了 ==分片== 处理
+
+## 分片
+
+分片是一种跨多台机器分布数据的方法(将数据分散在不同的机器)，可支持大数据集和高吞吐量操作的部署。
+
+分片是一种水平扩展，在多台服务器上加载数据，通过添加服务器来增加资源。
+
+> 垂直扩展：增加单个服务器的容量，但是工作负载具有一个实际的限制。
+
+
+
 ## 运算符
 
 ### [$set](#size)
@@ -372,7 +435,174 @@ MongoDB 在创建集合期间会创建一个唯一的索引在"\_id"字段上。
 
 > 当操作数为一个数值时，返回结果为 计算结果*操作数
 
+## SpringBoot 整合
 
+- 添加依赖 `spring-boot-starter-data-mongodb` 
+
+- 配置数据库
+
+  ```yml
+  spring:
+    data:
+      mongodb:
+        uri: mongodb://localhost:27017/数据库名
+  ```
+
+> 添加依赖、配置过后，Spring Boot 工厂会创建一个 `MongoTemplate` 对象， 来帮助我们操作 MongoDB。
+
+- 注解
+
+  - `@Document(collection = "")`
+
+    作用于类上
+
+    将该类的实例作为 MongoDB 的一条文档数据
+
+    collection 为指定存放文档记录的集合
+
+  - `@Id`
+
+    作用于成员变量、方法上
+
+    将该属性与 MongoDB 文档记录的 _id 进行映射
+
+  - `Field(name = "")`
+
+    作用于成员变量、方法上
+
+    将该属性与 MongoDB 文档记录的 K 进行映射
+
+    name 为指定文档的字段名
+
+  - `Transient`
+
+    作用于成员变量、方法上
+
+    该字段在转换为文档记录时不参与序列化
+
+- MongoDB 操作
+
+  - 集合操作
+
+    - 创建
+
+      `mongoTemplate.createCollection(集合名称)`
+
+      创建已存在的集合会发生错误，需要检查该集合是否存在
+
+      `mongoTemplate.collectionExists(集合名称)`
+
+    - 删除
+
+      `mongoTemplate.dropCollection(集合名称)`
+
+      即也可以删除不存在的集合
+
+  - 文档操作
+
+    - 添加
+
+      `mongoTemplate.save(保存的对象)` 或
+
+      `mongoTemplate.insert(保存对象的集合, 实体类)` 
+
+      > save 和 insert 都可用来添加集合，主要区别：
+      >
+      > save:
+      >
+      > ​	      一次保存单条文档记录
+      >
+      > ​		  save 无论 _id 是否存在，都会存入，当 _id 存在时，会将记录删除后在存入
+      >
+      > insert:
+      >
+      > ​          一次可保存多条记录
+      >
+      > ​			当 _id 存在时，阻止存入(报错)
+
+    - 查询
+
+      - 查询所有
+    
+        `mongoTemplate.findAll()`
+    
+        `mongoTemplate.findAll(new Query(), 实体类)` 
+    
+        > `Query` 是 MongoDB 的查询对象，表示条件、投影、排序和查询提示。
+        >
+        > 其中可用于分页、排序。
+    
+      - _id 查询
+    
+        `mongoTemplate.findById(id值, 实体类)`
+    
+      - 等值查询
+    
+        `mongoTemplate.find(Query.query(Criteria.where().is()), 实体类);`
+    
+        > `Criteria` 是创建查询的中心类。他对应许多 MongoDB API 的查询条件运算符，如类中的方法：
+        >
+        > ne --> $ne
+        >
+        > lt --> $lt
+        >
+        > size --> $size
+        >
+        > type --> $type
+        >
+        > orOperator() --> $or
+        >
+        > 等等，许多是可以见名生意的
+    
+      - and 查询
+    
+        `mongoTemplate.find(Query.query(Criteria.where().is().and().lt()), 实体类);`
+    
+        > 表示查询当 **某个字段等于某值** 且 **某个字段小于某值** 时的查询结果
+    
+      - or 查询
+    
+        ```java
+        mongoTemplate.find(
+            Query.query(new Criteria().orOperator(多个Criteria.where()条件),
+            实体类
+        );
+        ```
+    
+    - 更新
+    
+      - `updateFirst` 
+    
+        ```java
+        Update update = new Update();
+        update.set(K, V);
+        mongoTemplate.updateFirst(Query.query(Criteria.where().is()), update, 实体类);
+        ```
+    
+        > 更新符合查询条件的第一条记录	
+    
+      - `updateMulti`
+    
+        ```java
+        update = new Update();
+        update.set(K, V);       mongoTemplate.updateMulti(Query.query(Criteria.where().is()), update, 实体类);
+        ```
+    
+        > 将条件查询到的结果全部更新
+    
+      - `upsert`
+    
+        ```java
+        update = new Update();
+        update.set(K, V);
+        mongoTemplate.upsert(Query.query(Criteria.where().is()), update, 实体类);
+        ```
+    
+        > 当条件查询无符合记录时，插入更新的数据值记录
+    
+    - 删除
+    
+      `mongoTemplate.remove(Query, 实体类)` 
 
 
 

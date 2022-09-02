@@ -48,6 +48,10 @@ import org.apache.tomcat.util.http.CookieProcessor;
  * facilities to identify the appropriate Wrapper to handle this request.
  * It also provides a convenient mechanism to use Interceptors that see
  * every request processed by this particular web application.
+ *
+ * Context 是一个容器，代表了 servlet 上下文，所以是在 Catalina servlet 引擎中
+ * 的一个单独的 web 应用。几乎在每个 Catalina 部署中是有用的，即使一个 Connector
+ *
  * <p>
  * The parent Container attached to a Context is generally a Host, but may
  * be some other implementation, or may be omitted if it is not necessary.

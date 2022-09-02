@@ -24,10 +24,17 @@ import org.apache.catalina.mapper.Mapper;
  * <strong>Connectors</strong> that share a single <strong>Container</strong>
  * to process their incoming requests.  This arrangement allows, for example,
  * a non-SSL and SSL connector to share the same population of web apps.
+ *
+ * 一个 Service 是一组或多组的 Connectors，共享一个单独的 Container 去处理他们的进来的请求。
+ * 这个约定遵循，如：一个 non-SSL(非套接字) 和 SSL(套接字) 连接器共享相同的 web app 群。
+ *
  * <p>
  * A given JVM can contain any number of Service instances; however, they are
  * completely independent of each other and share only the basic JVM facilities
  * and classes on the system class path.
+ *
+ * 一个被给的 JVM 可包含任意数量的 Service 实例；不过，他们是完全独立于每个的，且仅仅共享
+ * 系统中基本的JVM环境和类。
  *
  * @author Craig R. McClanahan
  */

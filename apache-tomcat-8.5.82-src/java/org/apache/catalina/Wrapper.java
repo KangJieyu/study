@@ -28,6 +28,9 @@ import javax.servlet.UnavailableException;
  * definition from the deployment descriptor of the web application.  It
  * provides a convenient mechanism to use Interceptors that see every single
  * request to the servlet represented by this definition.
+ * Wrapper 是一个容器，代表一个来自 web 应用程序部署描述符的单个servlet 定义。他
+ * 提供了一个便利使用 Interceptors(拦截器) 的机制，可看到通过这个 servlet 代表定义
+ * 的每个请求。
  * <p>
  * Implementations of Wrapper are responsible for managing the servlet life
  * cycle for their underlying servlet class, including calling init() and

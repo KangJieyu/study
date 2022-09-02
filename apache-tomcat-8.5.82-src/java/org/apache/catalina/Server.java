@@ -27,20 +27,34 @@ import org.apache.catalina.startup.Catalina;
  * the servlet container as a whole.  A <code>Server</code> may contain
  * one or more <code>Services</code>, and the top level set of naming
  * resources.
+ *
+ * 一个 Server 元素代表了整个 Catalina servlet 容器。他的属性代表了整个 Servlet
+ * 容器的特征。一个 Server 可能包含一个或更多的 Services ，且在命名资源集的最高级别。
+ *
  * <p>
  * Normally, an implementation of this interface will also implement
  * <code>Lifecycle</code>, such that when the <code>start()</code> and
  * <code>stop()</code> methods are called, all of the defined
  * <code>Services</code> are also started or stopped.
+ *
+ * 正常情况下，这个接口的实现也将实现 Lifecycle ，所以当 start() 和 stop() 方法
+ * 被调用时，所有被定义的 Services 也将被 开启 或 停止。
+ *
  * <p>
  * In between, the implementation must open a server socket on the port number
  * specified by the <code>port</code> property.  When a connection is accepted,
  * the first line is read and compared with the specified shutdown command.
  * If the command matches, shutdown of the server is initiated.
+ *
+ * 介于两者之间，实现必须打开一个被 port 属性指定端口的服务套接字(8005)。当一个连接被接受时，
+ * 首行被读取且和指定的关闭命令比较。如果命令匹配，关闭启动的 Server。
+ *
  * <p>
  * <strong>NOTE</strong> - The concrete implementation of this class should
  * register the (singleton) instance with the <code>ServerFactory</code>
  * class in its constructor(s).
+ *
+ * Note：这个类的具体实现应该注册 单例实例在 ServerFactory 类的构造方法中。
  *
  * @author Craig R. McClanahan
  */

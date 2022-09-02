@@ -24,22 +24,30 @@ import java.util.regex.Pattern;
 /**
  * A <b>Host</b> is a Container that represents a virtual host in the
  * Catalina servlet engine.  It is useful in the following types of scenarios:
+ * Host 代表 Catalina servlet 引擎中的虚拟主机。他被使用在以下场景中：
  * <ul>
  * <li>You wish to use Interceptors that see every single request processed
  *     by this particular virtual host.
+ *     你希望使用 Interceptors(拦截器)查看通过特定虚拟主机处理的每个请求。
  * <li>You wish to run Catalina in with a standalone HTTP connector, but still
  *     want support for multiple virtual hosts.
+ *     你希望在一个独立的 HTTP 连接器中运行 catalina ，但仍想支持多个虚拟主机。
  * </ul>
  * In general, you would not use a Host when deploying Catalina connected
  * to a web server (such as Apache), because the Connector will have
  * utilized the web server's facilities to determine which Context (or
  * perhaps even which Wrapper) should be utilized to process this request.
+ * 总而言之，当部署 Catalina 连接到一个 web 服务器时不能使用 Host，因为 Connector 将
+ * 利用 web 服务器的基础来确定使用的 Context (Wrapper) 来处理这个请求。
  * <p>
  * The parent Container attached to a Host is generally an Engine, but may
  * be some other implementation, or may be omitted if it is not necessary.
+ * 附加到 Host 的父 Container 一般是 Engine，但是可能需要其他的实现，或者如果他不是
+ * 必须的则可能省略。
  * <p>
  * The child containers attached to a Host are generally implementations
  * of Context (representing an individual servlet context).
+ * 附加到 Host 的子容器一般实现了 Context(代表一个独立的 servlet context)。
  *
  * @author Craig R. McClanahan
  */

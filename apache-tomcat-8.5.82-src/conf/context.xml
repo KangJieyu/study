@@ -16,6 +16,7 @@
   limitations under the License.
 -->
 <!-- The contents of this file will be loaded for each web application -->
+<!-- 这个 content 的文件将被每个 Web 应用程序加载 -->
 <Context>
 
     <!-- Default set of monitored resources. If one of these changes, the    -->
