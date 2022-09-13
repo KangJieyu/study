@@ -50,7 +50,8 @@ import org.apache.tomcat.util.ExceptionUtils;
  * Standard implementation of the <b>Host</b> interface.  Each
  * child container must be a Context implementation to process the
  * requests directed to a particular web application.
- *
+ * Host 接口的标准实现。每个子容器一定变为 Context 实现去处理一个特定 web
+ * 应用的请求路径。
  * @author Craig R. McClanahan
  * @author Remy Maucherat
  */

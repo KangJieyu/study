@@ -48,7 +48,8 @@ import org.apache.juli.logging.LogFactory;
  * child container must be a Host implementation to process the specific
  * fully qualified host name of that virtual host. <br>
  * You can set the jvmRoute direct or with the System.property <b>jvmRoute</b>.
- *
+ * Engine 接口的标准实现。每一个子容器必须是一个 Host 实现，去处理一个虚拟主机的特定的完全合格的主机名。
+ * 你可设置 jvmRoute 路径或者 jvmRoute 的系统属性。
  * @author Craig R. McClanahan
  */
 public class StandardEngine extends ContainerBase implements Engine {

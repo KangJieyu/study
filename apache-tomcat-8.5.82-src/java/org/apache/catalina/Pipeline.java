@@ -25,6 +25,10 @@ import java.util.Set;
  * must process the request and create the corresponding response, rather
  * than trying to pass the request on.</p>
  *
+ * 接口描述了一个 Valve 的集合，当 invoke() 方法被执行时 Valve 将有序的执行。
+ * 它需要在 Pipeline 中的 Valve(通常是最后一个)必须处理请求并且做出相应的响应，
+ * 而不是尝试去传递请求。
+ *
  * <p>There is generally a single Pipeline instance associated with each
  * Container.  The container's normal request processing functionality is
  * generally encapsulated in a container-specific Valve, which should always
@@ -32,6 +36,11 @@ import java.util.Set;
  * <code>setBasic()</code> method is provided to set the Valve instance that
  * will always be executed last.  Other Valves will be executed in the order
  * that they were added, before the basic Valve is executed.</p>
+ *
+ * 通常有一个单独的 Pipeline 实例与每个 Container 相关联。Container 的正常功能性请求处理
+ * 一般是被封装在一个特别容器 Valve 中，总是在 Pipeline 最后一个执行。为了促进这一点，setBasic()
+ * 方法是用来设置 Valve 实例，从而总是在最后执行。其他的 Valve 将在 “基本” Value
+ * 执行前以他们添加的顺序执行。
  *
  * @author Craig R. McClanahan
  * @author Peter Donald

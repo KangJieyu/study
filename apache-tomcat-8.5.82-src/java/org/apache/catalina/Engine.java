@@ -23,7 +23,7 @@ package org.apache.catalina;
  * <ul>
  * <li>You wish to use Interceptors that see every single request processed
  *     by the entire engine.
- *     你希望使用 Interceptors(拦截器)查看整个引擎的处理的每个请求。
+ *     你希望使用 Interceptors(拦截器)查看整个引擎处理的每个请求。
  * <li>You wish to run Catalina in with a standalone HTTP connector, but still
  *     want support for multiple virtual hosts.
  *     你希望在一个独立的 HTTP 连接器运行 Catalina ，但是仍然想支持多个虚拟主机。

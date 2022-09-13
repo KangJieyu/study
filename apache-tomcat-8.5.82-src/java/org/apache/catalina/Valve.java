@@ -29,6 +29,9 @@ import org.apache.catalina.connector.Response;
  * each other into a Pipeline.  The detailed contract for a Valve is included
  * in the description of the <code>invoke()</code> method below.</p>
  *
+ * Valve 是一个和特定的 Container 关联的请求处理组件。一系列的 Valve 通常相互关联成一个 Pipeline。
+ * 一个 Valve 详细的约定包含在 invoke() 方法中。
+ *
  * <b>HISTORICAL NOTE</b>:  The "Valve" name was assigned to this concept
  * because a valve is what you use in a real world pipeline to control and/or
  * modify flows through it.

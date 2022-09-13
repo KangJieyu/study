@@ -40,7 +40,7 @@ import org.apache.juli.logging.Log;
  * <p>
  * Containers will exist at several conceptual levels within Catalina.  The
  * following examples represent common cases:
- * Containers 在 Catalina 中存在几个概念上的级别。以下是一些常见的例子：
+ * Containers 在 Catalina 中存在几个概念上的级别。以下是一些常见的例子：(Engine Host Context Wrapper 是一个 Container)
  * <ul>
  * <li><b>Engine</b> - Representation of the entire Catalina servlet engine,
  *     most likely containing one or more subcontainers that are either Host
@@ -89,11 +89,12 @@ import org.apache.juli.logging.Log;
  *     Manager - 和这个 Container 相关联的 Session 池的管理器。
  * <li><b>Realm</b> - Read-only interface to a security domain, for
  *     authenticating user identities and their corresponding roles.
- *     Realm - 安全域中仅读的接口，用于an
+ *     Realm - 安全域中仅读的接口，用于认证用户的身份和他们相应的角色。
  * <li><b>Resources</b> - JNDI directory context enabling access to static
  *     resources, enabling custom linkages to existing server components when
  *     Catalina is embedded in a larger server.
- *     Resources -
+ *     Resources - JNDI目录上下文能够访问静态资源，当 Catalina 在大型服务器中时支持
+ *     对存在的服务器组件进行自定义链接。
  * </ul>
  *
  * @author Craig R. McClanahan

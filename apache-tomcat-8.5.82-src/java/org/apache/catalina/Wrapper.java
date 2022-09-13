@@ -36,14 +36,20 @@ import javax.servlet.UnavailableException;
  * cycle for their underlying servlet class, including calling init() and
  * destroy() at appropriate times, as well as respecting the existence of
  * the SingleThreadModel declaration on the servlet class itself.
+ * Wrapper 的实现是负责对他们底层的 servlet 类的 servlet 生命周期的管理，包括在适当时候对
+ * init() 和 destroy() 方法的调用，而且也尊重在 servlet 类本身存在的 SingleThreadModel
+ * 声明。
  * <p>
  * The parent Container attached to a Wrapper will generally be an
  * implementation of Context, representing the servlet context (and
  * therefore the web application) within which this servlet executes.
+ * 附加到一个 Wrapper 的父 Container，一般来说被 Context 实现，代表在这个 servlet
+ * 执行范围内 servlet 上下文(web 应用)。
  * <p>
  * Child Containers are not allowed on Wrapper implementations, so the
  * <code>addChild()</code> method should throw an
  * <code>IllegalArgumentException</code>.
+ * 子类 Container 不允许实现 Wrapper，调用 addChild() 将会抛出 IllegalArgumentException 异常。
  *
  * @author Craig R. McClanahan
  */

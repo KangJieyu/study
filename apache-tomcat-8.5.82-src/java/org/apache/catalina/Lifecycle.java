@@ -22,9 +22,13 @@ package org.apache.catalina;
  * may implement this interface (as well as the appropriate interface(s) for
  * the functionality they support) in order to provide a consistent mechanism
  * to start and stop the component.
+ *
+ * 组件生命周期方法的共同接口。Catalina 组件可能实现这个接口(提供1功能性的适当的接口)为了
+ * 提供一个持续的启动组件和停止组件的机制。
  * <br>
  * The valid state transitions for components that support {@link Lifecycle}
  * are:
+ * 组件支持的 Lifecycle 有效状态是：
  * <pre>
  *            start()
  *  -----------------------------
@@ -56,12 +60,15 @@ package org.apache.catalina;
  * ----»-----------------------------»------------------------------
  *
  * Any state can transition to FAILED.
+ * 任何一个状态能转变到 failed。
  *
  * Calling start() while a component is in states STARTING_PREP, STARTING or
  * STARTED has no effect.
+ * 当组件是在 starting_prep、starting 或 started 状态时调用 start() 方法是无效的。
  *
  * Calling start() while a component is in state NEW will cause init() to be
  * called immediately after the start() method is entered.
+ *
  *
  * Calling stop() while a component is in states STOPPING_PREP, STOPPING or
  * STOPPED has no effect.
