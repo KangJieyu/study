@@ -1,3 +1,21 @@
+# MySQL
+
+## 引擎
+
+MyISAM和InnoDB
+
+### MyISAM
+
+5版本前，不支持事务，不支持行级锁，只支持表级锁
+
+### InnoDB
+
+
+
+
+
+
+
 # MongoDB
 
 ## 简介
