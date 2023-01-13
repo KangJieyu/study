@@ -37,13 +37,13 @@ MVVM Model View ViewModel(vue)，主要负责VM 视图模型，将视图(页面)
 </script>
 ```
 
-## 构建工具
+## 工具
 
-需要 node.js 和 yarn 管理工具
+### 构建工具 Vite
 
-yarn 安装时出现 “npm ERR! code EACCES”，添加权限即可
-
-### Vite
+> node.js 和 yarn 管理工具
+>
+> yarn 安装时出现 “npm ERR! code EACCES”，添加权限即可
 
 初始化项目 `yarn init -y` 
 
@@ -65,30 +65,41 @@ yarn 安装时出现 “npm ERR! code EACCES”，添加权限即可
 
 ​	}
 
-运行 `yarn dev`
+运行 `yarn dev` 
 
-## 组件模块化
+### 调试工具
 
-1. 创建根组件内容提出(默认导出)/定义子组件
+浏览器安装扩展程序“Vue.js devtools”
 
-   ```js
-   export default {
-   	data() {
-   		return: {
-         // 响应式数据：点击按钮，网页中表现为DOM的变化(我们改变的是变量)
-         message: "hello",
-         count: 0
-   		}
-   	},
-   	template: `<button @click='count++'>快来点我</button><span>count = {{count}}</span>`
-   }
-   ```
+## 组件模块化(组件 模板 指令)
 
-2. 使用
+### 组件
+
+创建根组件内容提出(默认导出)/定义子组件
+
+```js
+export default {
+	data() {
+		return: {
+      // 响应式数据：点击按钮，网页中表现为DOM的变化(我们改变的是变量)
+      message: "hello",
+      count: 0,
+      // stu对象中的属性也为响应式 深层响应式
+     	stu: {
+        name: "zhangsan",
+        age: 18
+      }
+		}
+	},
+	template: `<button @click='count++'>快来点我</button><span>count = {{count}}</span>`
+}
+```
+
+1. 使用
 
    `import App from "./App"` App为提出内容的文件名
 
-3. 使用子组件
+2. 使用子组件
 
    ```js
    // 1.引入子组件
@@ -112,6 +123,75 @@ yarn 安装时出现 “npm ERR! code EACCES”，添加权限即可
 
    子组件之间互不干扰，数据相互不影响
 
+### template
+
+`{{ }}` 为插值，其中只能使用==表达式== ；
+
+插值实际是修改元素DOM的textContent，若内容中含有HTML标签，标签将被转义显示给用户；
+
+要想HTML标签正常显示，则需使用==指令==。
+
+```vue
+<script>
+	const msg = "hello,vue";
+</script>
+<template>
+	<!-- 直接访问组件中的变量 -->
+	<h1>{{ msg }}</h1>
+	<!-- 使用一些全局对象，如Date、Math、NaN -->
+	<h1>{{ Math.random }}</h1>
+	<!-- 在App对象中配置全局 -->
+</template>
+```
+
+```js
+import {createApp} from "vue";
+import App from "App.vue";
+
+const app = createApp(app);
+
+// 配置
+app.config.globalProperties.NAME = VALUE;
+
+app.mount("#app");
+```
+
+### v-指令
+
+显示 template 中的HTML内容，不需要插值符号了。
+
+- v-text="" 
+
+  将表达式值为textContent插入，同`{{}}`
+
+- v-html=""
+
+  将表达式值为innerHTML插入，但有被xss攻击风险，==不安全==
+
+- v-bind:Prop="VALUE"  ==**绑定class属性**== 
+
+  为标签动态的设置属性值
+
+  `<img v-bind:src="path" alt="">` 为img标签添加路径 同：`<img :src="path" alt=""/>`
+
+  
+
+  `const attrs = {name: "zhangsan", age: "18"};` 
+
+  `<div v-bind="attrs">\</div>` 为div绑定name和age两个属性并设值
+
+  [:class=""绑定HTML](#绑定HTML)
+
+- v-bind:[attrName]="attrValue"
+
+  为标签设置动态参数(动态属性名和属性值)
+
+- v-show="{boolean表达式}"
+
+  设置内容是否显示，表达式true则内容显示，否则相反；
+
+  实质是通过 `display: none` 设置
+
 ## 自动创建项目
 
 创建项目 `yarn create vue`
@@ -130,18 +210,22 @@ yarn 安装时出现 “npm ERR! code EACCES”，添加权限即可
 
 运行 `yarn dev` 
 
-## 单文件组件，data函数，响应式数据
+## 单文件组件 data 响应式数据 methods computed setup
 
 解决 `template` 编写问题，效率低，体验差，执行时耗时
 
 单文件组件：即为一个 ==.vue== 格式文件
 
+### data
+
 ```vue
 <script>
   export default {
+    // data 指定实例对象中的响应式属性
     data() {
       console.log(this); // data是一个当前组件的实例vm
       this.name = "添加属性"; // 直接向组件实例中添加一个属性 非响应式数据
+      // this.$data.hello = "hi"; 动态的添加响应式数据
       return {
         // 响应式数据
         mess: "vue文件"
@@ -232,6 +316,224 @@ export default defineConfig({
 
 ----
 
+**深层响应式数据**
+
+```vue
+<script>
+  export default {
+    data() {
+      return {
+        message: "响应式数据",
+        stu: {
+          "name": "zhangsan",
+          "age": 18
+        }
+      }
+    }
+  }
+</script>
+```
+
+**深层——>浅层**
+
+```vue
+<script>
+  import {shallowReactive} from "vue"
+  export default {
+    data() {
+      // 浅层响应式数据
+      return shallowReactive({
+        message: "响应式数据",
+        stu: {
+          "name": "lisi",
+          "age": 18
+        }
+      })
+    }
+  }
+</script>
+```
+
+### mthods
+
+指定实例对象中的方法
+
+```vue
+<script>
+	data() {
+    
+  },
+  methods: {
+    // 其中可定义多个方法，最后挂载到组件实例，可通过组件实例调用
+    test() {
+      // this 会自动绑定到组件实例
+      console.log(this);
+      // code
+    }
+  }
+</script>
+<template>
+	<!-- 调用组件实例中的方法 -->
+	{{ test() }}
+</template>
+```
+
+
+
+### computed
+
+计算属性 属性名: getter
+
+会对数据缓存
+
+```vue
+<script>
+  export default {
+    data() {
+      
+    },
+    methods: {
+      // 组件重新渲染时调用
+      getInfo() {
+        
+      }
+    },
+    computed: {
+      // 会对数据缓存，只有在关联属性发生变化时重新执行
+      // 获取
+      info: function() {
+        // code
+        return res;
+      };
+      // 相当于
+      info() {
+    		return res;
+			};
+  		// 属性可读可写,尽量不写
+  		info: {
+        getInfo() {
+          return res;
+        },
+        setInfo(value) {
+          // code
+        }
+      }
+    }
+  }
+</script>
+```
+
+### setup
+
+钩子函数  ==组合式API== 
+
+```vue
+<script>
+  import {reactive} from "vue"
+  export default {
+    setup() {
+      // 直接声明的变量不是响应式属性
+      let name = "张三";
+      let age = 20;
+      // reactive创建的响应式对象，即 stu 为响应式数据
+      const stu = reactive({
+        name: "李四",
+        age: 18,
+        sex: "女"
+      });
+     	function changeAge(value) {
+        // 修改值 可避免 this
+        stu.NAME = value;
+      }
+      // 通过return向外暴露数据，不然不可使用
+      return {
+        age, // 非响应式数据 在浏览器中可更改
+        stu, // 响应式数据
+        changeAge
+      }
+    }
+  }
+</script>
+```
+
+上述代码进一步改进：
+
+`<script setup></script>` 加``setup`为纯组合式API，不需要编写 `return` 向外暴露数据，但响应式数据仍然需要 `reactive`
+
+```vue
+<script setup>
+  import {creative} from "vue";
+  let name = "张三";
+  let age = 20;
+  const stu = reactive({
+    name: "李四",
+    age: 18,
+    sex: "女"
+  });
+  function changeAge(value) {
+    // code
+  }
+</script>
+```
+
+### reactive
+
+`reactive()` 
+
+返回一个对象的响应式代理；
+
+返回的是一个深层响应式对象；
+
+也可根据 `shallowReactive()` 创建一个浅层的响应式对象。
+
+缺点：只能返回对象的响应式代理，不能处理原始值 ==> `ref()` 转化为对象，再代理
+
+### ref
+
+`const count = ref(0)` 创建了一个对象,将对象进行响应式处理 {value: 0},再返回count
+
+`const person = ref({name: "zhangsan", age: 18})` -> person = {value: {name: "", age: ""}}
+
+ref 处理的原始数据，**在template中会自动解包(ref对象必须是顶层对象)**，不需要调用value。使用：
+
+```vue
+<script>
+  // 顶层对象
+  const person = ref({
+  	name: "张三",
+  	age: 18
+	}); // {value: person} 
+  // 非顶层对象
+  const obj = {
+    name: ref("李四"),
+    age: ref(18)
+  };
+  // 构建->obj自动解包
+  const {name, age} = obj;
+</script>
+<template>
+	{{ person.name }}
+</template>
+```
+
+**在script中支持自动解包**
+
+默认情况不支持，需配置 vite.config.js
+
+plugins: [vue({
+
+​    reactivityTransform: true
+
+  })],
+
+```vue
+<script>
+  const person = $ref({
+    // code
+  })
+</script>
+```
+
 ## 代理
 
 ```js
@@ -250,6 +552,7 @@ const handler = {
    * @param receiver 代理对象
    */
   get(target, prop, receiver) {
+    // 获取前，vue中data()返回的对象都会被vue所代理-> 通过代理读取属性，会有一个跟踪操作 tracker()
     return target[prop];
   },
   /**
@@ -261,6 +564,7 @@ const handler = {
    */
   set(target, prop, value, receiver) {
     target[prop] = value;
+    // 修改后，通知应用位置进行更新 tigger()
   }
 };
 // 代理 原对象Proxy
@@ -273,3 +577,123 @@ console.log(proxy.age); // 12
 ```
 
 > 代理对象的读和写都是针对被代理的对象
+>
+> 代理不会对原对象产生影响
+
+## 样式
+
+### 全局样式
+
+此中的样式为==全局样式== ，作用于整体项目
+
+```vue
+<script></script>
+<template>
+<!-- 单根组件 -->
+<h1>我是单根组件</h1>
+</template>
+<style>
+  /* code */
+</style>
+```
+
+### 局部样式
+
+使用 scoped 属性后，Vue 会为组件中的所有的元素生成一个随机属性==data-v-xxxx== ;
+
+css样式修饰改为**属性选择器**：元素/class选择器/id选择器[data-v-xxxx]；
+
+且生成的随机属性**data-v-xxxx**，会添加到当前组件内到所有元素上，也会添加到当前组件引入其他组件(**单根组件**)的根元素上，不会添加到当前组件引入到多根组件中。
+
+```vue
+<script></script>
+<template>
+<!-- 多根组件 -->
+<h1>我是多根组件中的h1</h1>
+<div>我是多根组件中的div</div>
+</template>
+<style scoped>
+	/* code */
+</style>
+```
+
+### 其他样式
+
+```vue
+<style>
+  /*:deep() 深入选择器在组件中设置被引入组件中h2标签的样式*/
+  .app :deep(h2) {
+	}
+  /*:global() 全局选择器*/
+  :global(div) {
+  }
+</style>
+```
+
+### 模块化
+
+自动将类名hash处理，形式为：==.\_类_xxxx_x== 
+
+保证唯一性，且每个模块的样式互不影响
+
+```vue
+<template>
+<!-- 使用模块化样式 -->
+<div :class="$style.box1"></div>
+</template>
+<style module>
+  .box1 {
+    
+  }
+</style>
+```
+
+### 绑定HTML
+
+为`class`和`style`的v-bind用法提供了增强方法，除字符串外也可以为对象或数组。
+
+- 绑定对象
+
+  `<div v-bind:class="{active: isActive}"></div>` isActive是个boolean值，active取决于isActive的值
+
+- 绑定数组
+
+  `data() {return {class1: 'active', class2: 'text-danger'}}`
+
+  `<div :class="[class1, class2]"></div>` => `<div class="active text-danger"></div>`
+
+## 传递数据
+
+子组件中的数据通常在创建组件实例时确定，父组件可通过props来向子组件中传递数据。
+
+如何使用prop？
+
+1. 在子组件(Item)中定义
+
+   ```vue
+   <script setup>
+     const props = defineProps(["a", "b", "c"]); // 通过数组给子组件定义属性名
+     console.log("props", props.a);
+     const propsMess = defineProps(["objMess"]);
+     console.log("name", propsMess.objMess.name);
+   </script>
+   ```
+
+2. 在父组件中传递
+
+   ```vue
+   <script>
+     const obj = {
+       name: "zhangsan",
+       age: 18
+     }
+   </script>
+   <template>
+   <Item a="Vue" b="Java" c="C++"></Item>
+   <!-- /////////////// -->
+   <Item :objMess="obj"></Item>
+   </template>
+   ```
+
+   
+
