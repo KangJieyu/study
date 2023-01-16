@@ -71,7 +71,7 @@ MVVM Model View ViewModel(vue)，主要负责VM 视图模型，将视图(页面)
 
 浏览器安装扩展程序“Vue.js devtools”
 
-## 组件模块化(组件 模板 指令)
+## 组件模块化([动态]组件 模板 指令)
 
 ### 组件
 
@@ -122,6 +122,21 @@ export default {
    ```
 
    子组件之间互不干扰，数据相互不影响
+
+#### 动态组件
+
+动态组件是`component`，最终显示的标签由`is=""`决定。
+
+可以制作组件切换。
+
+```vue
+<template>
+<!--最终为：<div>我是动态组件div</div>-->
+<component is="div">我是动态组件div</component>
+</template>
+```
+
+
 
 ### template
 
@@ -180,7 +195,22 @@ app.mount("#app");
 
   `<div v-bind="attrs">\</div>` 为div绑定name和age两个属性并设值
 
-  [:class=""绑定HTML](#绑定HTML)
+  [:class=""绑定HTML](#绑定HTML) 
+
+  还可在style中绑定变量
+
+  ```vue
+  <script setup>
+    const color = "rgb(235, 45, 1)";
+  </script>
+  <style scoped>
+    标签 {
+      background-color: v-bind(color);
+    }
+  </style>
+  ```
+
+  
 
 - v-bind:[attrName]="attrValue"
 
@@ -190,7 +220,17 @@ app.mount("#app");
 
   设置内容是否显示，表达式true则内容显示，否则相反；
 
-  实质是通过 `display: none` 设置
+  实质是通过css中 `display: none` 来切换，不会涉及组件的重新渲染，切换效率高，但是初始化时需要将所有组件初始化，较慢。
+  
+- v-if=“{Bool}”
+
+  可设置元素是否显示，不进行显示，看不到元素代码，用“<!--v-if-->”替代，切换时会渲染组件，切换效率差，但组件初始化时用哪个初始化哪个，较快；
+
+  可配合`v-else`、`v-else-if`和`template`使用；
+
+- v-for="value in arr"
+
+  遍历arr，次数为arr中元素个数，每次遍历的元素值赋予value，取值为`{{value}}` 
 
 ## 自动创建项目
 
@@ -666,34 +706,49 @@ css样式修饰改为**属性选择器**：元素/class选择器/id选择器[dat
 
 子组件中的数据通常在创建组件实例时确定，父组件可通过props来向子组件中传递数据。
 
-如何使用prop？
+如何使用prop?
 
-1. 在子组件(Item)中定义
+1.在子组件(Item)中定义
 
-   ```vue
-   <script setup>
-     const props = defineProps(["a", "b", "c"]); // 通过数组给子组件定义属性名
-     console.log("props", props.a);
-     const propsMess = defineProps(["objMess"]);
-     console.log("name", propsMess.objMess.name);
-   </script>
-   ```
+```vue
+<script setup>
+  const props = defineProps(["a", "b", "c"]); // 通过数组给子组件定义属性名
+  console.log("props", props.a);
+  const propsMess = defineProps(["objMess"]);
+  console.log("name", propsMess.objMess.name);
+  const props1 = defineProps({
+    // 限制传递的类型，并不影响取值，如d传递的类型为“1”时，并不会运行错误
+    d: Number,
+    e: Object,
+    f: {
+      type: String, // 类型
+      required: true, // 是否必须传递
+      default: "123", // 默认值
+      validator(value) {
+        return boo; // 查看传递的值是否合法
+      }
+    }
+  });
+</script>
+```
 
-2. 在父组件中传递
+2.在父组件中传递
 
-   ```vue
-   <script>
-     const obj = {
-       name: "zhangsan",
-       age: 18
-     }
-   </script>
-   <template>
-   <Item a="Vue" b="Java" c="C++"></Item>
-   <!-- /////////////// -->
-   <Item :objMess="obj"></Item>
-   </template>
-   ```
+```vue
+<script>
+  const obj = {
+    name: "zhangsan",
+    age: 18
+  }
+</script>
+<template>
+<Item a="Vue" b="Java" c="C++"></Item>
+<!-- /////////////// -->
+<Item :objMess="obj"></Item>
+</template>
+```
 
-   
+> props为了确保数据的安全，在父组件中可以修改，在子组件中对数据是只能读的——单向数据流。
+
+
 
