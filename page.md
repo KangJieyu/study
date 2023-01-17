@@ -228,9 +228,19 @@ app.mount("#app");
 
   可配合`v-else`、`v-else-if`和`template`使用；
 
-- v-for="value in arr"
+- v-for="value in arr" 或 v-for="value of arr"
 
+  v-for="(value, index) in arr" 或 v-for="(value, index) of arr" 
+  
   遍历arr，次数为arr中元素个数，每次遍历的元素值赋予value，取值为`{{value}}` 
+  
+  在v-for时旧结构与新结构进行对比，改变变化的内容
+  
+  > <标签 v-for="value in arr" :key="val"></标签>
+  >
+  > 为元素指定一个**唯一**的key，元素比较时按照相同的key比较，而不是顺序。
+  
+  
 
 ## 自动创建项目
 
@@ -750,5 +760,28 @@ css样式修饰改为**属性选择器**：元素/class选择器/id选择器[dat
 
 > props为了确保数据的安全，在父组件中可以修改，在子组件中对数据是只能读的——单向数据流。
 
+## 网页渲染
 
+渲染页面时：
+
+- 加载页面的HTML和CSS，解析源代码
+- HTML转换为DOM，标签->DOM；CSS转换为CSSDOM
+- 将DOM和CSSDOM构建成渲染树
+- 对渲染树(网页)进行reflow(回流/重排)，即为计算元素位置、大小
+- 对网页进行绘制 repaint
+
+渲染树(Reader Tree)
+
+- 从根元素开始检查哪些元素的可见性(display)以及对应样式
+- 忽略不可见的元素(display让元素消失，会被忽略；visible让元素隐藏，但仍然在页面占位，不会被忽略，可以添加到渲染树中)
+
+回流(reflow)
+
+- 计算渲染树中元素的大小和位置
+- 当**页面元素大小或位置发生变化**(height、width、font-size)时，进行回流
+- **非常耗费资源**，次数过多会导致渲染性能较差
+
+重绘(repaint)
+
+- 当**页面发生变化**时，绘制网页
 
