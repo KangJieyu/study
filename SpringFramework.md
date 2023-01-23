@@ -1189,7 +1189,9 @@ spring:
     cache: false # 是否开启缓存，默认为开启的true，开发时推荐为false
   web:
     resources:
-      static-locations: classpath:/static/, file:${path} # 配置静态资源
+      static-locations: classpath:/static/, file:${path} # 配置静态资源 lcasspath-类路径
+  mvc:
+    static-path-pattern:/images/** # 配置静态资源的过滤规则(路径前添加一层虚拟路径-可不是真实存在)
 mybatis: # sqlSessionFactory
   mapper-locations: classpath:com/springboot/mapper/*.xml # 指定mapper配置文件的位置
   type-aliases-package: com.springboot.entity # 实体类包，起别名
@@ -1925,9 +1927,382 @@ CORS，跨域(域名)资源共享，允许浏览器跨源服务器，发出 XMLH
   stringEncryptor.decrypt("加密后的密码");
   ```
 
+# 微服务
+
+==微服务技术 != SpringBoot== 。微服务是分布式架构的一种，分布式架构将服务进行拆分(产生了问题)。SpringBoot仅解决了服务拆分时的服务治理的问题。
+
+> **微服务架构特征**
+>
+> 1. 单一职责：服务拆分粒度小，每个服务对应唯一的业务，避免重复业务开发。
+>
+>    > 服务拆分注意：
+>    >
+>    > - 不同微服务，不要重复开发相同业务
+>    > - 微服务数据独立，不要访问其他微服务的数据库
+>    > - 需要将自己的业务暴露为接口，供其他微服务调用
+>
+> 2. 面向服务：服务对外暴露业务接口，从而可远程调用。
+>
+> 3. 自治：做到独立。团队、技术、数据、部署。
+>
+> 4. 隔离性强：服务隔离、容错，避免出现级联错误。
+
+## 微服务技术
+
+微服务治理
+
+注册中心：记录服务中的ip和端口相关信息。
+
+配置中心：统一管理服务中的配置，可实现配置热更新。
+
+服务网关：用户身份的校验和将用户请求路由到具体服务。
+
+缓存技术
+
+分布式缓存：将数据库中的数据添加到内存。
+
+搜索技术
+
+分布式搜索：数据的搜索、统计、分析等。
+
+异步通信技术
+
+消息队列：异步通信。服务之间通过发送消息来进行通信，提高性能。
+
+持续集成技术
+
+分布式日志服务：统计整个集群的日志。
+
+系统监控和链路追踪：实时监控每个服务的运行状态，如CPU负载、内存占用等，出现问题时方便定位。
+
+持续集成：Jenkins：自动化部署；Docker：自动化打包等。
+
+## 微服务架构演变
+
+1. 单体架构：业务功能集中在一个项目中开发，打包一个包进行部署。
+
+   架构简单，不用进行架构设计；部署成本低，只有一个项目，一个服务器即可完成。
+
+   耦合度高，代码量多效率低，边界模糊；不利于大型项目开发。
+
+2. 分布式架构：将业务功能进行拆分，每个业务模块作为一个独立功能进行开发，即该独立功能称为一个服务。
+
+   耦合度低，各个功能模块互不干扰；利于模块技术升级。
+
+   复杂性较高，考虑相对较多，如：如何拆分、独立功能如何维护等。
+
+## 服务远程调用
+
+服务间的远程调用，数据处理，即为==发送http请求==
+
+1. 向调用服务Spring容器中注册`RestTemplate`  该服务为“消费者”
+
+   ```java
+   @Bean
+   public RestTemplate restTemplate() {
+     return new RestTemplate();
+   }
+   ```
+
+2. 在服务类中调用请求 该请求的服务为“提供者”
+
+   ```java
+   // 注入RestTemplate
+   @Autowired
+   public RestTemplate restTemplate;
+   // 业务方法
+   public E method(... param) {
+     // 处理
+     String url = "http://127.0.0.1/user/123";
+     // 不同类型的请求，调用的api不同 url为请求路径，class为请求成功后返回的类型
+     restTemplate.getForObject(url, class);
+     // 处理
+     return E;
+   }
+   ```
+
+> 服务提供者：一次业务中，被其他微服务调用的服务。(提供接口给其他微服务)
+>
+> 服务消费者：一次业务中，调用其他微服务的服务。(调用其他微服务提供的接口)
+>
+> 服务既可以是服务者，也可以是消费者，他是相对的。
+
+## Eureka注册中心
+
+### 原理
+
+eureka-server：服务端-注册中心。用来记录和管理微服务。
+
+eureka-client：客户端-服务提供者和消费者。
+
+![eureka原理图](images/eureka-1.png)
+
+- 服务注册：服务在启动时向eurake注册中心注册自己的信息，如端口等等；在服务消费者需要信息时，从注册中心获取。
+- 当有多个服务提供者，服务消费者则可根据负载均衡算法，从服务列表中选择一个。
+- 服务提供者每隔30s向注册中心发送一次心跳，注册中心更新服务列表信息，若心跳不正常，则将信息从服务列表中删除，服务消费者在获取服务时可以获取到最新信息。
+
+### 搭建
+
+一、搭建eureka服务端
+
+1. 构建子服务工程，添加`spring-cloud-starter-netflix-eureka-server`依赖
+
+2. 启动类配置`@EnableEurekaServer`注解
+
+3. 添加yml配置信息
+
+   ```yml
+   server:
+     port: 8082 # 配置端口
+   spring:
+     application:
+       name: eurekaserver # 配置微服务名称
+   eureka:
+     client:
+       service-url: # 配置eureka地址信息
+         defaultZone: http://127.0.0.1:8082/eurake
+   ```
+
+   > eureka自己也会被注册到注册中心，便于通信
+
+二、搭建eureka客户端(提供者)
+
+1. 在项目中添加`spring-cloud-starter-netflix-eureka-client`依赖
+
+2. 添加配置信息
+
+   ```yml
+   spring:
+   	application:
+   		name: xxxservice
+   eureka:
+   	client:
+   		service-url:
+   			defaultZone: http://127.0.0.1:8082/eureka
+   ```
+
+三、服务发现(消费者)
+
+1. 引入`spring-cloud-starter-netflix-eureka-client`依赖
+2. 添加配置及RestTemplate添加@LoadBalanced注解，负责负载均衡
+3. 在服务远程调用时，用服务名称替换地址信息，如http://xxxservice/......
+
+## Ribbon负载均衡
+
+### 原理
+
+![ribbon原理图](images/ribbon-1.png)
+
+### IRule规则
+
+![IRule接口继承关系图](images/IRule.png)
+
+负载均衡默认为`ZoneAvoidanceRule`策略(轮询)——同一个服务名沦替进行服务
+
+配置策略的两种方式
+
+- 启动类中注入`IRule`
+
+  ```java
+  // Application 启动类
+  @Bean
+  public IRule rule() {
+    return new IRule类的子类();
+  }
+  ```
+
+  > 全局配置
+
+- 配置项目yml文件
+
+  ```yaml
+  微服务提供者名称:
+  	ribbon:
+  		NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule # 类全路径名
+  ```
+
+  > 局部配置，只作用于微服务
+
+### 饥饿加载
+
+> - 懒加载
+>
+>   Ribbon默认懒加载机制，第一次访问时创建LoadBalanceClient，请求时间长。
+>
+> - 饥饿加载
+>
+>   项目启动时创建，降低第一次访问时间的消耗。
+
+```yml
+ribbon:
+	eager-load:
+		enabled: true # 开启饥饿加载
+		clients: xxxservice # 饥饿加载的微服务
+```
+
+## Nacos注册中心
+
+下载Naco
+
+- 启动：`sh startup.sh -m standalone`
+
+  -m 模式
+
+  standalone 单机启动
+
+- 关闭：`sh shutdown.sh`
+
+---nacos
+
+------bin
+
+------conf 
+
+------data
+
+------logs
+
+------target
+
+---------nacos-server.jar 可执行包
+
+### 原理
+
+![nacos原理图](images/nacos-1.png)
+
+> 非临时实例可根据`spring.cloud.nacos.discovery.ephemeral=false`进行配置
 
 
 
+| Eureka和Nacos对比                                            |
+| ------------------------------------------------------------ |
+| 都支持服务的注册和拉取(定时)<br />都使用心跳作为健康检测     |
+| **Nacos** <br />临时实例发出心跳检测(直接删除)，非临时实例发出主动检测(标记为“不健康”)<br />消费者服务列表更新通过消费者获取和服务器发出推送<br />集群默认是AP模式，强调数据的可用性；当集群中存在非临时实例时转换为CP模式，强调数据的可靠性和可用性<br />**Eureka**<br />集群默认只有AP模式 |
+
+### 搭建
+
+1. 父工程添加Nacos的管理依赖`spring-cloud-alibaba-dependencies`
+
+2. 在微服务中添加`spring-cloud-starter-alibaba-nacos-discovery`发现依赖
+
+3. 配置application.yml文件，配置服务地址
+
+   > 配置集群时，修改application.yml文件，启动相应服务即可
+
+   ```yaml
+   spring:
+   	cloud:
+       nacos:
+         server-addr: localhost:8848 # nacos服务地址
+         discovery:
+         	cluster-name: NAME # 集群名称
+   ```
+
+### 服务分级存储模型及策略
+
+| 一级 | 二级 | 三级 |
+| ---- | ---- | :--- |
+| 服务 | 集群 | 实例 |
+
+> 配置集群，修改application.yml文件，添加`spring.cloud.nacos.discovery.cluster-name`属性
+
+配置集群负载均衡规则
+
+```yml
+微服务名称:
+	ribbon:
+		NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+```
+
+> 优先选择本地集群，进行随机，从而实现负载均衡
+>
+> 在跨集群访问服务发生，在服务消费者中会记录跨集群的请求信息
+
+### 权重配置
+
+范围：[0,1] [不会被访问,]
+
+控制访问的频率，权重越大，访问频率越高。多用于版本更新，软件升级。
+
+可直接在nacos页面更改。
+
+### 环境隔离
+
+数据隔离和服务隔离，由命名空间和组管理。
+
+**命名空间**
+
+在nacos页面中可设置命名空间，选择填入id。后进行application中配置`spring.cloud.nacos.discovery.namespace:命名空间ID`
+
+### 配置管理
+
+在Nacos页面，配置管理->配置列表中设置
+
+Data ID: 文件id，服务名称-环境.yaml
+
+在配置内容中编写配置。
+
+![nacos配置加载](images/nacos-config-1.png)
+
+> bootstrap.yml优先级比application.yml高
+
+**如何进行管理?**
+
+1. 引入`spring-cloud-starter-alibaba-nacos-config`依赖
+
+2. 配置bootstart.yml文件
+
+   bootstrap.yml ==配置三要素：服务名-环境.后缀==
+
+   ```yaml
+   spring:
+   	application:
+   		name: 服务名称
+   	profiles:
+   		active: 开发环境
+   	cloud:
+   		nacos:
+   			server-addr: localhost:8848
+   			config:
+   				file-extension: 文件后缀
+   ```
+
+3. 可利用`@Value("${}")`注解读取配置信息
+
+**配置自动更新**
+
+两种方式
+
+1. 在`@Value`注解所在类上添加`@RefreshScope`注解
+
+2. 创建类，添加`@ConfigurationProperties(prefix = "前缀")` **推荐**
+
+   Data注解，自动添加get、set方法
+
+   ```java
+   @lombok.Data
+   @Component
+   @ConfigurationProperties(prefix = "前缀") // 在配置文件中为：前缀.属性名
+   public class DataProperties {
+     private String 属性名; 
+   }
+   ```
+
+### 多环境配置共享
+
+在 微服务名称.yaml 文件中进行配置
+
+> **配置文件优先级**
+>
+> 服务-环境.yaml---->服务.yaml---->本地配置
+>
+> 高(远程[当前环境->多环境共享])——低(本地)
+
+### 集群搭建
+
+## Http客户端Feign
+
+Fegin为远程调用，与RestTemplate作用相同
 
 
 
