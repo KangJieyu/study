@@ -2302,7 +2302,593 @@ Data ID: 文件id，服务名称-环境.yaml
 
 ## Http客户端Feign
 
-Fegin为远程调用，与RestTemplate作用相同
+Fegin为远程调用，与RestTemplate作用相同。
+
+RestTemplate存在以下问题：
+
+- 代码可读性差，体验不统一
+- url参数较为复杂，维护起来困难
+
+而Feign是一个声明式的Http客户端，帮助我们实现http请求的发送，解决RestTemplate存在的问题。
+
+### 使用
+
+1. 引入`spring-cloud-starter-openfeign`依赖
+
+2. 在服务的启动类中添加`@EnableFeignClients`注解，开启Feign功能
+
+3. 编写Feign客户端
+
+   > 类注解为要请求的服务，即服务提供者
+   >
+   > 方法注解上为请求方式、请求路径、请求参数
+   >
+   > 方法返回值为返回内容
+
+   ```java
+   @FeignClient("服务名称")
+   public interface FeignClass {
+     @GetMapping("/path/{param}")
+     E method(@PathVariable param);
+   }
+   ```
+
+4. 在服务类中直接注入Feign客户端，调用方法，即可完成请求
+
+   ```java
+   @Autowired
+   private FeignClass feign;
+   // 业务方法
+   public V method(... param) {
+     // 处理
+     E = feign.method(param);
+     // 处理
+     return V;
+   }
+   ```
+
+### 配置
+
+**日志**
+
+feign.Logger.Level
+
+四种级别：NONE、BASIC、HEADERS、FULL
+
+> 耗性能
+
+**响应结果解析**
+
+feign.codec.Decoder
+
+将结果进行解析，如json格式专为字符串
+
+**请求参数**
+
+feign.codec.Encoder
+
+请求参数编码，参数为请求体
+
+**注解**
+
+feign.Contrat
+
+支持的注解，默认SpringMVC注解
+
+**失败重试**
+
+feign.Retryer
+
+不是Feign进行的，而是ribbon的重试
+
+```yaml
+feign:
+	client:
+		config:
+			default: # 全局配置，若配置某个服务，则为服务名称
+				logger-level: 日志级别
+```
+
+### 性能优化
+
+Feign是声明式的http客户端，将声明转为http请求，默认利用URLConnection发送http请求。
+
+URLConnection客户端是Java底层，且不支持链接池，消耗性能。
+
+在性能优化，可以使用 Apache HttpClient和OKHttp，他们两个支持链接池。
+
+1. 引入`feign-httpclient`依赖
+
+2. 配置链接池
+
+   ```yaml
+   feign:
+   	httpclient:
+   		enabled: true # 开启对http client的支持
+   		max-connections: 200 # 最大链接数
+   		max-connections-per-route: 50 # 每个路径的最大连接数
+   ```
+
+### 最佳使用方式
+
+一、接口继承
+
+给消费者的FeignClient和提供者的controller定义统一的父接口作为标准。
+
+消费者和提供者共用一个接口，造成紧耦合，且不能很好的支持springmvc，以及参数不能继承，难维护。
+
+二、模块抽取 **推荐**
+
+将FeignClient抽取为一个独立的模块，与接口有关的POJO、默认的Feign配置都写入该模块，最后提供给消费者使用。
+
+> 模块抽取，需要在服务消费者端引入模块的依赖。
+>
+> 但是在服务中注入client后，无法成功注入，需要在启动类中进行配置
+>
+> - 指定FeignClient所在包`@EnableFeignClients(basePackages = "xx.xx.clients")`
+> - 指定FeignClient子节码`@EnableFeignClients(clients = [Clients.class])`
+
+## 网关Gateway
+
+Gateway，基于Spring提供的WebFlux，属于响应式编程的实现，具备更好的性能。
+
+![网关执行图](images/gateway-1.png)
+
+### 作用
+
+- 身份验证、权限校验：通过放行
+- 服务路由、负载均衡：请求放行，实例选择
+- 请求限流
+
+### 搭建
+
+1. 创建模块，引入nacos注册发现`spring-cloud-starter-alibaba-nacos-discovery`依赖和网关`spring-cloud-starter-gateway`依赖
+
+2. 编写路由配置及nacos地址
+
+   路由过滤器：对进入网关的请求和微服务返回的响应做出处理，如请求头信息和响应头信息等。
+
+   ```yaml
+   server:
+     port: 10010
+   spring:
+     application:
+       name: gateway # 该服务名称
+     cloud:
+       nacos:
+         server-addr: localhost:8848 # Nacos地址
+       gateway:
+         routes: # 网关路由配置 数组
+           - id: xxx # 路由id，唯一
+             uri: lb://xxservice # 两种方式 "http://ip:port/path" lb为LoadBalance，要做负载均衡
+             predicates: # 路由断言-判断请求是否符合路由规则 路由断言工厂
+               - Path=/user/** # 以user开头即为符合
+             filters: # 路由过滤器
+             	- AddRequestHeader=k,v # 添加请求头内容
+           - id: xxx
+           	......
+         default-filters: # 配置默认的过滤器
+         	-AddRequestHeader=k,v
+   ```
+
+   配置后运行服务，查询127.0.0.1:10010/user/101，即可路由到xxservice服务，查询数据显示。
+
+   > **路由断言工厂**
+   >
+   > 读取配置文件的断言规则，进行解析，对请求做出判断。
+
+### 全局过滤器
+
+实现网关过滤
+
+```java
+/**
+ * 配置全局过滤器：验证用户
+ */
+@Component
+public class AuthorizeFilter implements GlobalFilter, Ordered {
+
+    /**
+     * Process the Web request and (optionally) delegate to the next {@code WebFilter}
+     * through the given {@link GatewayFilterChain}.
+     * 处理web请求，通过GatewayFilterChain委托给下一个webfilter
+     * @param exchange the current server exchange 当前的过滤器信息
+     * @param chain provides a way to delegate to the next filter 委托给下一个过滤器的方法
+     * @return
+     */
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 1 获取请求参数 authorize
+        // 获取请求
+        ServerHttpRequest request = exchange.getRequest();
+        // 获取查询参数
+        MultiValueMap<String, String> params = request.getQueryParams();
+        // 2 获取指定参数 获取第一个匹配的参数
+        String authorize = params.getFirst("authorize");
+        // 3 判断参数是否等于admin，若相等则放行，否则拦截
+        if ("admin".equals(authorize)) {
+            // 是，放行
+            return chain.filter(exchange);
+        }
+        // 拦截时设置状态码 未认证
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
+    }
+    /**
+     * 过滤器的优先级，数字越小，优先级越高 相当于@Order(-1)类注解
+     * @return
+     */
+    @Override
+    public int getOrder() {
+        return -1;
+    }
+}
+```
+
+### 跨域
+
+即为域名不一致，如域名不同、端口不同也为跨域。
+
+`浏览器`禁止发出请求，与服务端发出跨域的`Ajax请求`，从而被浏览器拦截。
+
+```yaml
+spring:
+  cloud:
+  	gateway:
+      globalcors: # 全局跨域处理
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: # 允许以下网站跨域请求
+              - "http://localhost:8090"
+              - "http://www.leyou.com"
+            allowed-methods: # 允许以下跨域的Ajax请求方式
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            allowed-headers: "*" # 允许请求中携带的头信息
+            allowCredentials: true # 是否允许携带Cookie
+            maxAge: 36000 # 本次跨域的有效期
+```
+
+## Docker
+
+应用可以在不同的Linux系统上部署允许。
+
+- 将系统函数库、依赖、配置等与应用一起**打包** ==> 镜像 一系列文件，只读
+- 将每个应用放到一个**隔离**容器中去允许，避免互相干扰 沙箱机制
+
+容器：镜像中的应用程序运行后形成的进程
+
+Docker是CS架构
+
+- Server：Docker的守护进程，处理Docker指令，完成各种操作。
+- Client：向Docker发送命令或RestAPI请求。
+
+> 在安装过程中，配置镜像源
+
+启动Docker `systemcl start docker`
+
+### 基本操作
+
+> 镜像名称：repository:tag，如mysql:5.7，可不指定tag，则为默认最新的版本
+
+#### 镜像
+
+- 拉取镜像 `docker pull nginx` 默认版本，从Docker Hub拉取
+- 查看本地镜像 `docker images` 名称 版本 id 创建时间 大小
+- 删除镜像 `docker rmi images`
+- 从docker中导出镜像 `docker save -o path/{image}.tar {image}`
+- 本地文件导入docker `docker load -i path/{image}.tar`
+
+#### 容器
+
+- 创建并运行容器 `docker run --name 容器名称 -p 宿主机端口:容器内端口 -d 镜像` 
+
+  -name 表示容器名称	-d 表示后台运行	-p 表示端口映射
+
+  命令完成后，显示容器id，容器id和容器名都是唯一标识
+
+- 查看开启的容器 `docker ps` 容器id 镜像 容器内部命令 创建时间 状态时间 端口 容器名称
+
+  -a 参数 查看已挂的容器
+
+- 暂停容器运行 `docker pause 容器名`
+
+- 开启暂停的容器 `docker unpause 容器名`
+
+- 删除容器 `docker rm -f 容器名` -f 强制删除运行的容器
+
+- 查看容器日志 `docker log 容器名`
+
+- 进入容器执行命令 `docker exec -it 容器名 命令` 
+
+  可以加入容器，进行修改文件内容 **不推荐**
+
+  没有很好的工具支持；没有日志的记录，不利于恢复和检查；升级维护困难
+
+- 关闭容器 `docker stop 容器名`
+
+- 开启已关闭的容器 `docker start 容器名`
+
+#### 数据卷
+
+是一个虚拟目录，指向宿主主机文件系统中的目录/var/lib/docker/volumes
+
+- 创建数据卷 `docker volume create 卷名`
+
+- 数据卷列表 `docker volume ls`
+
+- 查看数据卷详细信息 `docker volume inspect 卷名`
+
+- 删除数据卷 
+
+  `docker volume prune` 删除所有未使用的数据卷
+
+  `docker volume rm 卷名` 删除一个或多个数据卷
+
+- 挂载数据卷 创建容器时挂载
+
+  `docker run --name 容器名 -v 卷名:容器内目录 -p 宿主机端口:容器内端口 -d 镜像  `
+
+  可直接创建启动容器时指定数据卷，在没有卷时，会自动创建数据卷并进行挂载。
+
+### 自定义镜像
+
+镜像：将系统函数库、应用程序、依赖、环境、配置打包而成。
+
+DockerFile：文本文件，包含许多指令，通过类似以下指令来构建镜像。
+
+- FROM 构建基础镜像 'java8-apline' web程序共享的镜像
+- ENV 设置环境变量
+- COPY 拷贝本地到镜像指定目录
+- RUN 执行Linux的shell命令，一般为安装
+- EXPOSE 指定运行时监听的端口
+- ENTRYPOINT 镜像中应用的启动命令
+
+命令
+
+- 构建镜像 `docker build -t 镜像名:版本 文件夹(DockerFile在哪个目录下)`
+
+### DockerCompose
+
+基于==compose文件==，帮助我们快速部署分布式应用，不需要手动创建和一个个的创建。
+
+compose文件，一个文本文件，通过指令定义集群中的每个容器如何运行。
+
+## 服务异步通讯
+
+### 同步通讯
+
+关注实效性。一对一在线服务。
+
+- 代码耦合，需求增加，修改代码
+- 性能差、耗时长、吞吐量低(挨个运行，调用者等待服务响应才能进行下一步，调用链过长，调用时常也较长)
+- 资源利用率较低(请求等待过程中，需要等待服务的响应，不能释放资源)
+- 级联失败(服务出现问题时，请求也发生等待，其他请求和服务也停止)
+
+### 异步通讯
+
+异步调用，即为事件驱动模式。不需要结果，只发出通知。
+
+- 代码减耦
+- 性能提高、吞吐量提高
+- 服务没有强依赖关系，不会级联失败
+- 流量削峰
+- 取决于Broker，Broker要求高；调用关系不清晰，不好追踪管理。
+
+### 消息队列MQ
+
+Message Queue，即为事件。
+
+如**RabbitMQ**、ActiveMQ、RocketMQ、Kafka
+
+**安装启动**
+
+- 安装命令
+
+  `docker pull rabbitmq`
+
+- 创建容器并运行
+
+  `docker run --name 容器名 -p 15672:15672 -p 5672:5672 -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password -d 镜像名`
+
+在安装完毕后遇到如下问题：
+
+1. 运行容器开放端口，发现rabbitmq页面访问不到
+
+   - 进入rabbitmq容器 `docker exec -it 容器名 bash`
+
+   - 开启插件管理 `rabbitmq-plugins enable rabbitmq_management`
+
+2. 进入rabbitmq页面进行登录时输入密码后，“不是安全链接”，要求再次输入用户名和密码
+
+   - 进入rabbitmq容器 `docker exec -it 容器名 bash`
+
+   - 查看用户
+
+     - `rabbitmqctl list_users`
+
+       只有一个用户
+
+     - 添加用户，并赋予管理员权限
+
+       `rabbitmqctl add_user 用户名 密码`
+
+       `rabbitmqctl set_user_tags 用户名 administrator`
+
+3. 以新建用户登录后，页面显示不全，点击**Channels**后，显示`Stats in management UI are disabled on this node`问题
+
+   - 进入rabbitmq容器 `docker exec -it 容器名 bash`
+
+   - 进入配置文件修改配置
+
+     `cd /etc/rabbitmq/conf.d`
+
+     `echo management_agent.disable_metrics_collector = false > management_agent.disable_metrics_collector.conf`
+
+   - 重新启动容器 `docker restart 容器名`
+
+MQ元素内容
+
+- Channel：操作MQ的工具，发送消息、接收消息
+- Exchange：消息路由，消息发送至交换机，交换机发送至队列
+- Queue：缓存消息
+- Virtual Host：虚拟主机，对Queue、Exchange等等逻辑分组
+
+### 常见消息模型
+
+有基本消息队列模型、工作消息队列模型、发布-订阅队列模型和
+
+![基本消息队列模型](images/基本消息队列模型.png)
+
+![工作消息队列模型](images/工作消息队列模型.png)
+
+>多个消费者共享一个消息队列，消费者开始会从队列中**预取**消息，在处理能力未知的情况下主动去获取消息。
+>
+>可通过`spring.rabbitmq.listener.simple.prefetch=count`来设置获取的数量，完成处理后再次获取。
+
+![发布-订阅消息队列模型](images/发布-订阅消息队列模型.png)
+
+> 交换机类型不同，可分为：Fanout广播交换机、Direct路由交换机、Topic话题交换机
+>
+> - Fanout Exchange 广播交换机
+>
+>   交换机会将消息路由到每个与其绑定的消息队列中。
+>
+> - Direct Exchange 路由交换机**路由模式**
+>
+>   交换机会将接收到的消息根据指定的规则，路由到**指定**的消息队列。
+>
+>   - 每个Queue与Exchange设置一个BindingKey
+>   - 发布消息时，指定消息的RoutingKey
+>   - Direct Exchange可以绑定多个BindingKey相同的队列
+>
+> - Topic Exchange 话题交换机
+>
+>   - routingKey的值必须以“.”风格的多个单词列表
+>   - 队列与交换机的绑定支持通配符模式，“#”表示0个或多个单词，“*”表示一个单词
+
+### Spring AMQP
+
+AMQP(Advanced Message Queuing Protocol)，高级消息队列**协议**，在应用程序之间传递消息的协议规范，该规范与语言和平台无关。
+
+Spring AMQP，是对AMQP的实现，基于AMQP协议定义的一套API规范，且提供了模板来发送消息和接收消息。包含了Spring-amqp是基本抽象、Spring-rabbit是RabbitMQ的实现。
+
+**基本消息队列模型**和**工作消息队列模型**
+
+1. 父工程引入`spring-boot-start-amqp`依赖
+
+2. 配置发送者服务
+
+   ```yaml
+   spring:
+     rabbitmq:
+       host:  # 主机
+       port:  # 端口
+       virtual-host: / # 虚拟主机
+       username:  # 用户名
+       password:  # 密码
+   ```
+
+3. 编写测试
+
+   ```java
+   public class PublisherTests {
+     @Autowired
+     private RabbitTemplate rabbitTemplate;
+     
+     public void sendMessage2Queue() {
+       // 消息发送到队列
+       rabbitTemplate.convertAndSend("队列名", "发送内容");
+     }
+   }
+   ```
+
+
+3. 编写消费者服务，配置同发送者，编写处理消息
+
+   ```java
+   @Component
+   public class ConsumerTests {
+     /**
+     * @param k 为队列中的消息，E为消息类型
+     * @RabbitListener指定监听的队列
+     */
+     @RabbitListener(queues = "队列名")
+     public void listenerQueueMessageHandler(E k) {
+       // 消息处理
+     }
+   }
+   ```
+
+**发布订阅消息队列模型——Fanout Exchange 广播交换机**
+
+1. 消费者服务中创建Fanout Exchange、Queue、绑定消息队列到交换机中
+
+   ```java
+   @Configuration
+   public class FanoutConfig {
+     @Bean
+     public FanoutExchange fanoutExchange() {
+       return new FanoutExchange("交换机名");
+     }
+     @Bean
+     public Queue fanoutQueue() {
+       return new Queue("队列名");
+     }
+     @Bean
+     public Binding fanoutBingding(Queue fanoutQueue, FanoutExchange fanoutExchange) {
+       return BindingBuilder.bind(fanoutQueue).to(fanoutExchange);
+     }
+   }
+   ```
+
+2. 发送消息
+
+   发送到交换机
+
+   `rabbitTemplate.convertAndSend(交换机名称, "", 消息);`
+
+**发布订阅消息队列模型——Direct Exchange 路由交换机**
+
+1. 消费者服务接收消息 指定绑定的队列、交换机名和类型、绑定的key(相同的key，队列与消费者进行通讯)
+
+   ```java
+   @RabbitListener(bindings = @QueueBinding(value = @Queue(队列名)),
+                  exchange = @Exchange(name = "交换机名", type = ExchangeTypes.Direct),
+                  key = {"k1", "k2"...})
+   public void directExchange(String message) {
+     
+   }
+   ```
+
+2. 发布者发送消息 由routingKey判断路由给哪个队列
+
+   `rabbitTemplate.convertAndSend(交换机名称, routingKey, 消息);`
+
+**发布订阅消息队列模型——Topic Exchange 话题交换机**
+
+代码相同，只需改动通配符
+
+> 消息发布，发送的消息支持所有的类型，通过字节传输，默认为java的序列化(ObjectOutputStream)
+>
+> 如果要用json方式序列化，需要修改MessageConverter类型的Bean
+>
+> 1. 在发布者和消费者中引入`jackson-databind`依赖
+>
+> 2. 在发布服务和消费者服务中添加`MessageConverter`对象
+>
+>    ```java
+>    @Bean
+>    public MessageConverter converter() {
+>      return new Jackson2JsonMessageConverter();
+>    }
+>    ```
+>
+> 3. 消费者使用消息时参数类型为发布时的类型
 
 
 
