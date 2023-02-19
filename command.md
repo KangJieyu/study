@@ -1,37 +1,89 @@
-# git
+# Git
 
-## git操作
+## Git基本命令
 
 - 仓库初始化
 
   `git init`
 
-  完成后生成==.git==文件
+  初始化一个全新的存储库并开始更新现有的目录。完成后生成==.git==文件，来跟踪管理版本库，内部数据结构
 
-- 添加资源至本地仓库
+- 添加资源到暂存
 
-  `git add file`
+  `git add file` 
 
-- 提交资源到本地仓库
+  添加资源至暂存区
+
+- 提交资源到分支
 
   `git commit -m "message"`
 
-- 关联远程仓库
+  提交暂存的内容，message 为每个版本的提示信息
 
-  `git remote add origin git@github.com:user/res.git`
+- 查看文件状态
+
+  `git status` 
+
+  未跟踪、已修改、已暂存
+
+  > 红色——未添加到暂存区的文件
+  >
+  > 绿色——已添加到暂存区，但未添加到分支的文件
+
+- 处在的分支
+
+  `git branch`
+
+  查看正在本地处理的分支
+
+## Git日志
+
+- `git log`
+
+  显示每次提交的版本信息，包括: 版本号(SHA1)、日期和提交的提示信息
+
+- `git log --pretty=oneline`
+
+  一行显示每次提交的日志，包括: 版本号、提示信息
+
+## 版本回滚
+
+- `git reset --hard HEAD^`
+
+  回退一个版本，`HEAD^^` 回退两个版本，`HEAD~50` 回退50个版本
+
+- `git reset --hard SHA1`
+
+  回退到指定版本
+
+- `git reflog`
+
+  列出提交到分支的版本号和信息
+
+## 操作撤销
+
+- 暂存区撤销
+
+  `git reset HEAD file`
+
+  撤销已 `git add` 的资源
+
+## Git存储库
+
+- 创建远程存储库
+
+  `git remote add origin git@github.com:user/res.git` 
+
+  关联远程仓库， `origin` 远程名称
 
 - 推送
 
   `git push origin main` 
 
-- 查看文件状态
-
-  `git status`
-
-  > 红色——未添加的文件
-  >
-  > 绿色——已添加未提交的文件
   
+
+- 
+
 - 强制推送
 
   `git push origin +main` 
@@ -43,8 +95,10 @@
 - 删除远程分支
 
   `git push origin -d target`
-  
-  
+
+
+
+
 
 
 
@@ -77,9 +131,20 @@
    
    最好将生成的文件提交到远程仓库中
    
-   
 
+## 修改关联仓库
 
+- 查看关联
+
+  `git remote -v`
+
+- 删除已关联仓库
+
+  `git rm origin`
+
+- 添加关联
+
+  `git remote add origin git@github.com:user/name.git`
 
 # Linux
 
