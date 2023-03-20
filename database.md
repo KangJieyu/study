@@ -1,6 +1,8 @@
 # MySQL
 
-## 引擎
+
+
+## 存储引擎
 
 MyISAM和InnoDB
 
@@ -9,6 +11,14 @@ MyISAM和InnoDB
 5版本前，不支持事务，不支持行级锁，只支持表级锁
 
 ### InnoDB
+
+5含5版本后，MySQL默认的存储引擎。
+
+![mysql结构](images/mysql结构.png)
+
+MySQL存储分为物理存储和逻辑存储，逻辑存储已表来存，名为Tablespace，一个Tablespace分为三段，分别为Leaf node segment、Non-leaf node segment和Rollback segement，分别来存储记录、主从索引和回滚事务多信息。
+
+
 
 
 

@@ -453,6 +453,16 @@ Program Counter Register，行号指示器
 
 ## 字节码分析
 
+### 指令
+
+1. 进制转换
+
+   javac File.class	vim打开class文件	输入`:%!xxd` 回车保存即可
+
+2. 
+
+
+
 javap -v file.class	输出字节码的附属信息
 
 invokevirtual 调用对象的实例方法

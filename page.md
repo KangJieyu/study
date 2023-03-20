@@ -240,7 +240,6 @@ app.mount("#app");
   >
   > 为元素指定一个**唯一**的key，元素比较时按照相同的key比较，而不是顺序。
   
-  
 
 ## 自动创建项目
 
@@ -716,7 +715,9 @@ css样式修饰改为**属性选择器**：元素/class选择器/id选择器[dat
 
 子组件中的数据通常在创建组件实例时确定，父组件可通过props来向子组件中传递数据。
 
-如何使用prop?
+除props外，还有插槽 slot ，用来子父组件传递内容。
+
+### 如何使用prop
 
 1.在子组件(Item)中定义
 
@@ -760,6 +761,47 @@ css样式修饰改为**属性选择器**：元素/class选择器/id选择器[dat
 
 > props为了确保数据的安全，在父组件中可以修改，在子组件中对数据是只能读的——单向数据流。
 
+### 插槽 slot
+
+例子
+
+默认<HTML>slot插槽内容</HTML>，内容默认出现在没有“name”属性中，含有name属性的为==具名插槽==
+
+```vue
+<!-- 组件 -->
+<script>
+  import demo from "demo.vue";
+</script>
+<template>
+	<!-- 插槽内容可为文本、标签或其他组件 -->
+	<demo>
+    <template v-slot:n1>slot小例子</template>
+		<template #n2>slot的第二个例子</template>
+		<!-- 用slotProps接收插槽传递的参数，也可以传递对象”解构“ -->
+		<template v-slot:n3="slotProps"></template>
+	</demo>
+</template>
+```
+
+```vue
+<!-- demo组件 -->
+<script>
+  const stuName = "zhangsan";
+  const stuAge = 18;
+  const stuSex = "男";
+</script>
+<template>
+<div>
+  <!-- 插槽指定name属性：具名插槽 -->
+  <slot name="n1"></slot><!--此位置将为“slot小例子”-->
+  <slot name="n2"></slot><!--此位置将为“slot的第二个例子”-->
+  <slot name="n3" :StuName="stuName" :stuAge="stuAge" :stuSex="stuSex"></slot>
+</div>
+</template>
+```
+
+
+
 ## 网页渲染
 
 渲染页面时：
@@ -784,4 +826,36 @@ css样式修饰改为**属性选择器**：元素/class选择器/id选择器[dat
 重绘(repaint)
 
 - 当**页面发生变化**时，绘制网页
+
+## 事件
+
+- 用`v-on:event=""`绑定事件-->`@event=""`
+
+- 內联事件处理器：事件触发，直接执行js
+
+  - `<button @click="js">內联事件</button>`
+
+  - `<button @click="fun($event)"></button>`
+
+    直接调用
+
+  事件是由自己调用，且函数参数是由自己传递的；
+
+  若向使用时间对象，则在调用时传入`$event`
+
+- 方法事件处理器：事件触发，vue会对事件的函数进行调用
+
+  `<button @click="fun"></button>`
+
+  vue帮助调用“fun”函数，传递“**事件对象**”作为参数，即为原生的事件对象，可获取：触发事件的对象、事件触发时的一些情况，也可对事件进行控制，如：传播、行为。
+
+> vue如何区分內联和方法
+>
+> 检查事件值是否为合法的js标识符或属性访问路径，是则为方法事件处理器，否为內联事件处理器。
+
+事件冒泡
+
+`event.stopPropagation()` 原生方式阻止冒泡
+
+`<button @click.stop="fun()"></button>` 通过vue阻止冒泡
 
